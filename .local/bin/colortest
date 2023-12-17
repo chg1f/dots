@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# https://www.gnu.org/software/termutils/manual/termutils-2.0/html_chapter/tput_1.html#SEC5
+# https://wiki.archlinux.org/title/Bash/Prompt_customization
+
+echo
+echo "# 16 colors"
+bash < <(curl -fsSL https://raw.githubusercontent.com/pablopunk/colortest/master/colortest)
+printf "     "
+printf "    m "
+for c in {1..9} {40..47}; do
+  printf "  %2dm " "$c"
+done
+printf "\n"
+for b in 0 {30..37}; do
+  for a in 0 1; do
+    printf "%4s " "$a;$b"
+    printf "\e[%s;%sm gYm \e[0m " "$a" "$b"
+    for c in {1..9} {40..47}; do
+      printf "\e[%s;%s;%sm gYm \e[0m " "$a" "$b" "$c"
+    done
+    printf "\n"
+  done
+done
+
+echo
+echo "# 256 colors"
+bash < <(curl -fsSL https://raw.githubusercontent.com/gnachman/iTerm2/master/tests/24-bit-color.sh)
+echo

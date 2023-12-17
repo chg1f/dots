@@ -1,0 +1,51 @@
+[alias]
+  s = status -s
+  add = add --verbose
+  logf = log --format=format:'%C(yellow)%h%C(reset) [%<|(20)%ar] %an %m %s %C(bold yellow)%<(10)%d%C(reset)'
+  logg = logf --graph --all
+  logm = "!f() { git logf --name-status -n ${1:-1}; }; f"
+  tree = "!f() { git ls-tree -r --name-only ${1:-HEAD} | tree --fromfile; }; f"
+
+[pull]
+  rebase = true
+
+[core]
+  editor = nvim
+
+[pager]
+  diff = delta
+  reflog = delta
+  show = delta
+  log = delta
+
+[delta]
+ side-by-side = true
+
+[diff]
+  tool = nvimdiff
+
+[merge]
+  tool = nvimdiff
+
+[include]
+  path = ~/.config/git/local
+
+[url "ssh://git@github.com"]
+  insteadOf = https://github.com
+
+[includeIf "gitdir:**/github.com/"]
+  path = ~/.config/git/github.com
+  # Template:
+  #
+  # [user]
+  #   name = chg1f
+  #   email = chongiofai@gmail.com
+  #
+  # [init]
+  #   defaultBranch = main
+  #
+  # [core]
+  #   sshCommand = ssh -i ~/.ssh/id_rsa
+  #
+
+# vim: ft=gitconfig

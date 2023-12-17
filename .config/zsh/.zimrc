@@ -1,0 +1,33 @@
+#!/bin/zsh
+# shellcheck shell=bash source=/dev/null disable=SC2034
+
+zmodule environment # Sets sane Zsh built-in environment options.
+zmodule utility # Aliases and functions for common utilities.
+
+zstyle ':zim:git' aliases-prefix 'g' # Prefix for git aliases.
+zmodule git # Aliases for git.
+
+zmodule fzf # Fuzzy finder for Zsh.
+
+ASDF_DIR="$HOME/.local/share/asdf"
+ASDF_DATA_DIR="$ASDF_DIR"
+zmodule asdf # Version manager for multiple languages.
+# zmodule ssh # SSH agent management.
+# zmodule input # Friendly key bindings for Zsh.
+# zmodule pacman # Aliases and functions for pacman.
+
+zmodule romkatv/powerlevel10k --use degit # Prmopts for Powerlevel10k.
+# zmodule git-info # Dependencies from asciiship.
+# zmodule duration-info # Dependencies from asciiship.
+# zmodule asciiship # Prompt for Asciiship.
+
+zmodule zsh-users/zsh-completions --fpath src # Additional completion definitions for Zsh.
+zmodule completion # Enables and configures smart and extensive tab completion.
+# NOTE: Must be loaded after Completion.
+zmodule zsh-users/zsh-syntax-highlighting # Fish-like syntax highlighting for Zsh.
+zmodule zsh-users/zsh-history-substring-search # Fish-like history search (up arrow) for Zsh.
+zmodule zsh-users/zsh-autosuggestions # Fish-like autosuggestions for Zsh.
+
+# TODO: zmodule lukechilds/zsh-nvm ?
+
+# vim: set ft=zsh

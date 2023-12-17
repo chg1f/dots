@@ -1,0 +1,16 @@
+# encoding=utf-8
+
+set keyseq-timeout 0
+set bell-style none
+set blink-matching-paren on
+set colored-completion-prefix on
+set editing-mode vi
+# set show-mode-in-prompt on
+# set vi-cmd-mode-string "[CMD]"
+# set vi-ins-mode-string ""
+
+# unbind
+"\C-h": self-insert
+"\C-j": self-insert
+"\C-k": self-insert
+"\C-l": self-insert
