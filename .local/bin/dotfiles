@@ -1,200 +1,205 @@
-#!bash
-# encoding=utf-8
-# shellcheck shell=bash source=/dev/null
+#!/bin/bash
+# shellcheck shell=bash
 
 set -e
 
-DOTFILES_REPOSITORY="${DOTFILES_REMOTE:-"https://github.com/chg1f/dotfiles.git"}"
-DOTFILES_HOME="${DOTFILES_HOME:-"$HOME"}"
-DOTFILES_DATA="${DOTFILES_DATA:-"$HOME/.local/share/dotfiles"}"
-DOTFILES_CONFIG="${DOTFILES_CONFIG:-"$HOME/.config/.dotfiles"}"
-DOTFILES_ACTION="${DOTFILES_ACTION:-""}"
-DOTFILES_COMMIT_USER_NAME="${DOTFILES_COMMIT_NAME:-"chg1f"}"
-DOTFILES_COMMIT_USER_EMAIL="${DOTFILES_COMMIT_EMAIL:-"chongiofai@gmail.com"}"
-DOTFILES_COMMIT_MESSAGE="${DOTFILES_COMMIT_MESSAGE:-"From $(uname) at $(date +"%Y-%m-%d %H:%M:%S")"}"
-DOTFILES_NOPULL=${DOTFILES_NOPULL:-0}
-DOTFILES_NOPUSH=${DOTFILES_NOPUSH:-0}
-DOTFILES_PLUGINS=()
+DOTFILES_INCLUDES="${DOTFILES_INCLUDES:-"$HOME/.config/.dotfiles"}"
+DOTFILES_HOME="${DOTFILES_HOME:-"$HOME/.local/share/dotfiles"}"
+DOTFILES_BACKUP="${DOTFILES_BACKUP:-"$DOTFILES_HOME/.backup"}"
 
-_DOTFILES_USAGE="Usage: $0 [-?|--help] [-c|--config FILE] [-h|--home DIR] [-d|--data DIR] [-s|--setup] [-b|--backup] [PLUGINS...]"
-_DOTFILES_STASHED=0
-_DOTFILES_TEMP_DATA=""
+DOTFILES_REPOSITORY="${DOTFILES_REPOSITORY:-"chg1f/dotfiles"}"
+DOTFILES_BRANCH="${DOTFILES_BRANCH:-"main"}"
+DOTFILES_COMMIT_USER_NAME="${DOTFILES_COMMIT_USER_NAME:-"dotfiles"}"
+DOTFILES_COMMIT_USER_EMAIL="${DOTFILES_COMMIT_USER_EMAIL:-"dotfiles@scripts.com"}"
+DOTFILES_COMMIT_MESSAGE="${DOTFILES_COMMIT_MESSAGE:-"$(uname -s) at $(date +"%Y-%m-%d %H:%M:%S")"}"
 
-# @param $1 Sync source directory
-# @param $2 Sync target directory
-# @param ${@:2} Sync include files
-_rsync() {
-  source="$1"
-  target="$2"
-  includes="$(mktemp)"
-  for path in "${@:2}"; do
-    [[ -e $source/$path ]] || continue
-    echo "$path" >>"$includes"
+DOTFILES_NOPULL="${DOTFILES_NOPULL:-0}"
+DOTFILES_NOPUSH="${DOTFILES_NOPUSH:-0}"
+
+__dotfiles_backup="$DOTFILES_BACKUP/$(date "+%Y%m%d_%H%M%S")"
+
+prepare_dotfiles() {
+  if [[ ! -d $DOTFILES_HOME ]]; then
+    git clone "https://github.com/$DOTFILES_REPOSITORY.git" "$DOTFILES_HOME" >/dev/null 2>&1
+    return
+  fi
+  [[ $DOTFILES_NOPULL -ne 0 ]] && return
+  git -C "$DOTFILES_HOME" add -Av
+  git -C "$DOTFILES_HOME" stash save "$DOTFILES_COMMIT_MESSAGE"
+  git -C "$DOTFILES_HOME" pull origin "$DOTFILES_BRANCH" --force
+}
+contains() {
+  for e in "${@:2}"; do [[ $e == "$1" ]] && return 0; done
+  return 1
+}
+add_includes() {
+  includes=()
+  if [[ -r "$DOTFILES_INCLUDES" ]]; then
+    while read -r i; do
+      [[ -z "$i" ]] && continue
+      [[ "$i" =~ ^# ]] && continue
+      contains "$i" "${includes[@]}" || includes+=("$i")
+    done < <(cat "$DOTFILES_INCLUDES")
+  fi
+  for i in "${@}"; do
+    [[ -z "$i" ]] && continue
+    contains "$i" "${includes[@]}" || includes+=("$i")
   done
-  [[ -s "$includes" ]] || return 0
-  rsync --out-format="%i %n%L" -irabc --backup-dir="$target/.dotfiles-backup/$(date +%s)" --files-from="$includes" "$source/" "$target" || return 1
-  rm -rf "$includes" || true
+  echo "${includes[@]}"
 }
-_setup() {
-  _rsync "$2" "$1" "${@:2}"
-}
-_backup() {
-  _rsync "$1" "$2" "${@:2}"
-}
+parse_includes() {
+  for i in "${@}"; do
+    case "$i" in
+    bin)
+      files+=(
+        ".local/bin/dotfiles"
+        ".local/bin/colortest"
+      )
+      ;;
+    bash)
+      files+=(
+        ".profile"
+        ".bash_profile"
+        ".bash_login"
+        ".bashrc"
+        ".bash_aliases"
+        ".bash_logout"
+        ".inputrc"
+      )
+      ;;
+    vim)
+      files+=(
+        ".vimrc"
+        ".config/nvim/init.vim"
+      )
+      ;;
+    zsh)
+      files+=(
+        ".zshenv"
+        ".config/zsh/.zprofile"
+        ".config/zsh/.zshrc"
+        ".config/zsh/.zlogin"
+        ".config/zsh/.zlogout"
+        ".config/zsh/.zimrc"
+        ".config/zsh/.p10k.zsh"
+      )
+      ;;
+    nvim)
+      files+=(
+        ".vimrc"
+        ".config/nvim/init.vim"
+        ".config/nvim/lua/lazyinit.lua"
+        ".editorconfig"
+      )
+      ;;
+    tmux)
+      files+=(
+        ".config/tmux/tmux.conf"
+      )
+      ;;
+    wezterm)
+      files+=(
+        ".config/wezterm/wezterm.lua"
+      )
+      ;;
+    git)
+      files+=(
+        ".config/git/config"
+      )
+      ;;
+    ssh)
+      files+=(
+        ".ssh/config"
+      )
+      ;;
 
-setup_dotfiles() { _setup "$1" "$2" ".config/.dotfiles" ".local/bin/dotfiles"; }
-backup_dotfiles() { _backup "$1" "$2" ".config/.dotfiles" ".local/bin/dotfiles"; }
-setup_git() { _setup "$1" "$2" ".gitconfig" ".config/git/config"; }
-backup_git() { _backup "$1" "$2" ".gitconfig" ".config/git/config"; }
-setup_zsh() {
-  _setup "$1" "$2" ".zshenv" ".config/zsh"
-}
-backup_zsh() { _backup "$1" "$2" ".zshenv" ".config/zsh"; }
-setup_bash() { _setup "$1" "$2" ".profile" ".bashrc" ".bash_aliases" ".bash_profile" ".bash_login" ".bash_logout" ".inputrc"; }
-backup_bash() { _backup "$1" "$2" ".profile" ".bashrc" ".bash_aliases" ".bash_profile" ".bash_login" ".bash_logout" ".inputrc"; }
-setup_tmux() {
-  _setup "$1" "$2" ".tmux.conf" ".config/tmux/tmux.conf"
-  echo "Installing tmux plugins..."
-  if [[ ! -d "$HOME/.config/tmux/plugins/tpm" ]]; then
-    git clone "https://github.com/tmux-plugins/tpm" "$HOME/.config/tmux/plugins/tpm"
-  fi
-  bash "$HOME/.config/tmux/plugins/tpm/bindings/install_plugins"
-  #bash "$HOME/.config/tmux/plugins/tpm/bindings/update_plugins"
-  bash "$HOME/.config/tmux/plugins/tpm/bindings/clean_plugins"
-  tmux source-file "$HOME/.config/tmux/tmux.conf"
-}
-backup_tmux() { _backup "$1" "$2" ".tmux.conf" ".config/tmux/tmux.conf"; }
-setup_nvim() {
-  _setup "$1" "$2" ".editorconfig" ".vimrc" ".config/nvim/init.vim" ".config/nvim/lua/lazyinit.lua"
-  echo "Installing nvim plugins..."
-  nvim --headless "+Lazy! sync" "+TSInstallSync all" "+MasonToolsInstallSync" "+LspInstall" "+checkhealth"
-}
-backup_nvim() { _backup "$1" "$2" ".editorconfig" ".vimrc" ".config/nvim/init.vim" ".config/nvim/lua/lazyinit.lua"; }
-setup_vim() { _setup "$1" "$2" ".editorconfig" ".vimrc" ".config/nvim/init.vim"; }
-backup_vim() { _backup "$1" "$2" ".editorconfig" ".vimrc" ".config/nvim/init.vim"; }
-setup_wezterm() { _setup "$1" "$2" "wezterm"; }
-backup_wezterm() { _backup "$1" "$2" "wezterm"; }
-setup_pyenv() {
-  if [[ ! -d "${PYENV:-"$HOME/.pyenv"}" ]]; then
-    echo "Installing pyenv..."
-    bash < <(curl -fsSL https://pyenv.run)
-  fi
-}
-setup_gvm() {
-  if [[ ! -d "${GVM_ROOT:-"$HOME/.gvm"}" ]]; then
-    echo "Installing gvm..."
-    bash < <(curl -fsSL https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
-  fi
-}
-setup_nvm() {
-  if [[ ! -d "${NVM_DIR:-"$HOME/.nvm"}" ]]; then
-    echo "Installing nvm..."
-    bash < <(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh)
-  fi
-}
-setup_brew() {
-  command -v brew >/dev/null 2>&1 || {
-    echo "Installing Homebrew..."
-    bash < <(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)
-  }
-}
-setup_sshd() {
-  echo "Not implemented." && return 255
-  # TODO:
-  # _setup "$1" "$2" ".ssh/config" ".ssh/authorized_keys"
-  # chmod 700 "$HOME/.ssh"
-  # chmod 600 "$HOME/.ssh/config" "$HOME/.ssh/authorized_keys"
-  # sed -i "s/#Port 22/Port 22/" "/etc/ssh/sshd_config"
-}
-
-run() {
-  [[ -d "$DOTFILES_HOME" ]] || (echo "[x] Home directory not found." && exit 2)
-  if [[ -d "$DOTFILES_DATA" ]]; then
-    if [[ $DOTFILES_NOPULL -gt 0 ]]; then
-      echo "[!] Skipping pulling data directory."
-    else
-      git -C "$DOTFILES_DATA" stash save --all "$DOTFILES_COMMIT_MESSAGE" >/dev/null 2>&1 || (echo "[x] Data directory $DOTFILES_DATA stashing failed." && exit 2) && echo "[.] Data directory $DOTFILES_DATA stashed."
-      _DOTFILES_STASHED=1
-      echo "[.] Pulling data directory ..."
-      git -C "$DOTFILES_DATA" pull origin main --ff-only >/dev/null 2>&1 || (echo "[x] Data directory $DOTFILES_DATA pulling failed." && exit 2) && echo "[.] Data directory $DOTFILES_DATA pulled."
-    fi
-  else
-    _DOTFILES_TEMP_DATA=$(mktemp -d) && echo "[.] Data directory $DOTFILES_DATA not found, using temporary directory $_DOTFILES_TEMP_DATA."
-    DOTFILES_DATA="$_DOTFILES_TEMP_DATA"
-    if [[ $DOTFILES_NOPULL -gt 0 ]]; then
-      echo "[!] Skipping cloning data directory." && exit 2
-    else
-      echo "[.] Cloning data directory ..."
-      git -C "$DOTFILES_DATA" clone "$DOTFILES_REPOSITORY" "$DOTFILES_DATA" >/dev/null 2>&1 || (echo "[x] Data directory $DOTFILES_DATA cloning failed." && exit 2) && echo "[.] Data directory $DOTFILES_DATA cloned."
-    fi
-  fi
-  [[ -z "$DOTFILES_ACTION" ]] && (echo "[x] Action not set." && exit 2)
-  while [[ $# -gt 0 ]]; do
-    if command -v "${DOTFILES_ACTION,,}_$1" >/dev/null 2>&1; then
-      echo "[.] Running plugin $1 hook $DOTFILES_ACTION ..."
-      eval "${DOTFILES_ACTION,,}_$1" "$DOTFILES_HOME" "$DOTFILES_DATA" && echo "[.] Running plugin $1 hook $DOTFILES_ACTION succeeded." || echo "[x] Running plugin $1 hook $DOTFILES_ACTION failed."
-    fi
-    shift
-  done
-  case "$DOTFILES_ACTION" in
-  "SETUP") ;;
-  "BACKUP")
-    if [[ $DOTFILES_NOPUSH -gt 0 ]]; then
-      echo "[!] Skipping pushing changes."
-    else
-      git -C "$DOTFILES_DATA" add -Av >/dev/null 2>&1 && echo "[.] Changes added."
-      git -C "$DOTFILES_DATA" -c "user.name=$DOTFILES_COMMIT_USER_NAME" -c "user.email=$DOTFILES_COMMIT_USER_EMAIL" commit -m "$DOTFILES_COMMIT_MESSAGE" >/dev/null 2>&1 && echo "[.] Changes committed."
-      echo "[.] Pushing changes ..."
-      git -C "$DOTFILES_DATA" push origin main >/dev/null 2>&1 || (echo "[x] Pushing changes failed." && exit 2) && echo "[.] Changes pushed."
-    fi
-    ;;
-  esac
-  if [[ $_DOTFILES_STASHED -gt 0 ]]; then
-    git -C "$DOTFILES_DATA" stash pop "stash@{0}" >/dev/null 2>&1 && echo "[.] Data directory restored."
-  fi
-  [[ -z "$_DOTFILES_TEMP_DATA" ]] || (rm -rf "$_DOTFILES_TEMP_DATA" && echo "[.] Temporary data directory removed.")
-}
-
-main() {
-  [[ $# -gt 0 ]] || (echo "$_DOTFILES_USAGE" && exit 1)
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-    -\? | --help)
-      echo "$_DOTFILES_USAGE"
-      exit 1
+    i3wm)
+      files+=(
+        ".config/i3/config"
+        ".xinitrc"
+        ".Xresources"
+      )
       ;;
-    -c | --config)
-      shift
-      [[ -r "$1" ]] || (echo "[x] Config file not found." && exit 1)
-      DOTFILES_CONFIG="$1"
+    bspwm)
+      files+=(
+        ".config/bspwm/bspwmrc"
+        ".xinitrc"
+        ".Xresources"
+      )
       ;;
-    -h | --home)
-      shift
-      [[ -d "$1" ]] || (echo "[x] Home directory not found." && exit 1)
-      DOTFILES_HOME="$1"
+    shkd)
+      files+=(
+        ".config/shkd/shkdrc"
+      )
       ;;
-    -d | --data)
-      shift
-      [[ -d "$1" ]] || (echo "[x] Data directory not found." && exit 1)
-      DOTFILES_DATA="$1"
+    yabai)
+      files+=(
+        ".config/yabai/yabairc"
+      )
       ;;
-    -s | --setup)
-      [[ -z "$DOTFILES_ACTION" ]] || (echo "[x] Action already set." && exit 1)
-      DOTFILES_ACTION="SETUP"
+    sxhkd)
+      files+=(
+        ".config/sxhkd/sxhkdrc"
+      )
       ;;
-    -b | --backup)
-      [[ -z "$DOTFILES_ACTION" ]] || (echo "[x] Action already set." && exit 1)
-      DOTFILES_ACTION="BACKUP"
-      ;;
-    *) DOTFILES_PLUGINS+=("$1") ;;
+    *) files+=("$i") ;;
     esac
-    shift
   done
-  if [[ -r "$DOTFILES_CONFIG" ]]; then
-    echo "[.] Loading config file $DOTFILES_CONFIG ..."
-    source "$DOTFILES_CONFIG" || (echo "[x] Config file $DOTFILES_CONFIG loading failed." && exit 1) && echo "[.] Config file $DOTFILES_CONFIG loaded."
+  echo "${files[@]}"
+}
+commit_dotfiles() {
+  [[ $DOTFILES_NOPUSH -eq 0 ]] || return
+  git -C "$DOTFILES_HOME" add -Av >/dev/null
+  # git -C "$DOTFILES_HOME" diff HEAD^
+  read -rp "Do you want to save the changes? [y/N] " answer
+  if [[ $answer =~ ^[Yy] ]]; then
+    git -C "$DOTFILES_HOME" -c "user.name=$DOTFILES_COMMIT_USER_NAME" -c "user.email=$DOTFILES_COMMIT_USER_EMAIL" commit -m "$DOTFILES_COMMIT_MESSAGE" >/dev/null 2>&1
+    git -C "$DOTFILES_HOME" push origin "$DOTFILES_BRANCH" >/dev/null 2>&1
   fi
-  run "${DOTFILES_PLUGINS[@]}"
 }
 
-main "$@"
+case $1 in
+save)
+  prepare_dotfiles
+  includes=("$(add_includes "${@:2}")")
+  echo "${includes[*]}" | tr ' ' '\n' | sort >"$DOTFILES_INCLUDES"
+  files=("$(parse_includes ${includes[*]})")
+  mkdir -p "$__dotfiles_backup"
+  echo "${files[*]}" | tr ' ' '\n' | sort -u >"$__dotfiles_backup/.dotfiles"
+  rsync -irabc --ignore-missing-args --backup-dir="$__dotfiles_backup" --files-from="$__dotfiles_backup/.dotfiles" "$HOME/" "$DOTFILES_HOME" --out-format="%i %n%L"
+  commit_dotfiles
+  ;;
+load)
+  prepare_dotfiles
+  includes=("$(add_includes "${@:2}")")
+  echo "${includes[*]}" | tr ' ' '\n' | sort >"$DOTFILES_INCLUDES"
+  files=("$(parse_includes ${includes[*]})")
+  mkdir -p "$__dotfiles_backup"
+  echo "${files[*]}" | tr ' ' '\n' | sort -u >"$__dotfiles_backup/.dotfiles"
+  rsync -irabc --ignore-missing-args --backup-dir="$__dotfiles_backup" --files-from="$__dotfiles_backup/.dotfiles" "$DOTFILES_HOME/" "$HOME" --out-format="%i %n%L" -n
+  ;;
+download)
+  files=("$(parse_includes "$(add_includes "${@:2}")")")
+  for p in "${files[@]}"; do
+    curl -fsSL "https://raw.githubusercontent.com/$DOTFILES_REPOSITORY/$DOTFILES_BRANCH/$p" -o "$HOME/$p"
+  done
+  ;;
+setup)
+  for i in "${@:2}"; do
+    case $i in
+    sshd) ;;
+    brew) ;;
+    fzf) ;;
+    asdf) ;;
+    pyenv) ;;
+    gvm) ;;
+    nvm) ;;
+    esac
+  done
+  ;;
+*)
+  echo "\
+  Usage: $0 [save|load|download|setup] [INCLUDES...]"
+  exit 1
+  ;;
+esac

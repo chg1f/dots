@@ -6,7 +6,7 @@ local config = {
     { family = 'Noto Color Emoji' },
   }),
   color_scheme = "Breeze",
-  -- color_scheme = "Tokyo Night",
+  --- color_scheme = "Tokyo Night Storm",
   window_close_confirmation = "AlwaysPrompt",
   exit_behavior = "CloseOnCleanExit",
   hide_tab_bar_if_only_one_tab = true,

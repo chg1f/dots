@@ -482,10 +482,10 @@ vim.list_extend(plugins, {
       -- Neovim development helper
       {
         "folke/neodev.nvim",
-        cond = function()
-          local _, count = vim.fn.expand("%:p"):gsub("**/nvim/*.lua", "")
-          return count > 0
-        end,
+        -- cond = function()
+        --   local _, count = vim.fn.expand("%:p"):gsub("**/nvim/*.lua", "")
+        --   return count > 0
+        -- end,
         config = function() require("neodev").setup({}) end,
       },
     },
