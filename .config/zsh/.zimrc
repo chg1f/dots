@@ -5,8 +5,9 @@ zmodule environment # Sets sane Zsh built-in environment options.
 zmodule utility # Aliases and functions for common utilities.
 
 zstyle ':zim:git' aliases-prefix 'g' # Prefix for git aliases.
-zmodule git # Aliases for git.
+#zmodule git # Aliases for git.
 
+	./gitlab.huolala.cn/group-sec/hll-golang-common/v3
 zmodule fzf # Fuzzy finder for Zsh.
 
 ASDF_DIR="$HOME/.local/share/asdf"
