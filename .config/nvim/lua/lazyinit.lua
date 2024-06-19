@@ -3,13 +3,14 @@
 -- TODO: lua format string ' to "
 
 local function get_prog(name, opts)
-  opts = opts or { "$HOME/.local/bin", "/usr/local/bin", "/usr/local/bin", "bin" }
+  opts = opts or { "$HOME/.local/bin", "/usr/local/bin", "/usr/local/bin", "/bin" }
   for _, path in ipairs(opts) do
     path = vim.fn.expand(path)
     if vim.fn.executable(path .. "/" .. name) == 1 then
       return path .. "/" .. name
     end
   end
+  return name
 end
 
 vim.g.python3_host_prog = get_prog("python3")
@@ -48,7 +49,6 @@ vim.list_extend(plugins, {
       vim.cmd.colorscheme("tokyonight-night")
     end,
   },
-  "catppuccin/nvim",
 })
 
 -- display
@@ -235,10 +235,7 @@ vim.list_extend(plugins, {
     "folke/todo-comments.nvim",
     event = "VeryLazy",
     keys = {
-      { "]t",         function() require("todo-comments").jump_next() end,                                             desc = "Next Todo Comment" },
-      { "[t",         function() require("todo-comments").jump_prev() end,                                             desc = "Previous Todo Comment" },
       { "<leader>ft", function() require('telescope').extensions["todo-comments"].todo({ keywords = "TODO,BUG" }) end, desc = "Find Todo Comments" },
-      -- TODO: jump with diagnostics?
     },
     dependencies = {
       "nvim-lua/plenary.nvim",
@@ -261,12 +258,11 @@ vim.list_extend(plugins, {
     "folke/flash.nvim",
     event = "VeryLazy",
     keys = {
-      { "s",     mode = { "n", "x", "o" }, function() require("flash").jump() end,              desc = "Flash" },
-      { "S",     mode = { "n", "x", "o" }, function() require("flash").treesitter() end,        desc = "Flash Treesitter" },
-      { "r",     mode = "o",               function() require("flash").remote() end,            desc = "Remote Flash" },
-      { "r",     mode = "o",               function() require("flash").remote() end,            desc = "Remote Flash" },
-      { "R",     mode = { "o", "x" },      function() require("flash").treesitter_search() end, desc = "Treesitter Search" },
-      { "<C-s>", mode = { "c" },           function() require("flash").toggle() end,            desc = "Toggle Flash Search" },
+      { "s",     mode = { "n", "x", "o", }, function() require("flash").jump() end,              desc = "Flash" },
+      { "S",     mode = { "n", "x", "o", }, function() require("flash").treesitter() end,        desc = "Flash Treesitter" },
+      { "r",     mode = { "o", },           function() require("flash").remote() end,            desc = "Remote Flash" },
+      { "R",     mode = { "o", "x", },      function() require("flash").treesitter_search() end, desc = "Treesitter Search" },
+      { "<C-s>", mode = { "c", },           function() require("flash").toggle() end,            desc = "Toggle Flash Search" },
     },
     config = function()
       require("flash").setup({
@@ -280,7 +276,6 @@ vim.list_extend(plugins, {
   {
     'folke/which-key.nvim',
     event = "VeryLazy",
-    enable = false,
     init = function()
       vim.o.timeout = true
       vim.o.timeoutlen = 300
@@ -349,7 +344,7 @@ vim.list_extend(plugins, {
                   end,
                 })
               end,
-              ["<C-r>"] = require("trouble.providers.telescope").open_with_trouble,
+              -- ["<C-r>"] = require("trouble.providers.telescope").open_with_trouble,
             },
           },
         },
@@ -414,10 +409,7 @@ vim.list_extend(plugins, {
   {
     "folke/trouble.nvim",
     cmd = { "Trouble" },
-    keys = {
-      { "]r", function() require("trouble").next({ skip_groups = true, jump = true }) end,     desc = "Next Trouble Item" },
-      { "[r", function() require("trouble").previous({ skip_groups = true, jump = true }) end, desc = "Previous Trouble Item" },
-    },
+    enabled = false, -- BUG: hidden json string syntax
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
       require("trouble").setup({})
@@ -496,12 +488,6 @@ vim.list_extend(plugins, {
           vim.keymap.set({ 'n' }, '<leader>d',
             function() require("telescope.builtin").diagnostics() end,
             { desc = "Diagnostics" })
-          -- vim.keymap.set({ 'n' }, '<leader>d',
-          --   function() require("trouble").open({ mode = "document_diagnostics" }) end,
-          --   { desc = "Document Diagnostics" })
-          -- vim.keymap.set({ 'n' }, '<leader>D',
-          --   function() require("trouble").open({ mode = "workspace_diagnostics" }) end,
-          --   { desc = "Workspace Diagnostics" })
           vim.keymap.set({ 'n' }, ']d', vim.diagnostic.goto_next, { desc = "Next Diagnostic" })
           vim.keymap.set({ 'n' }, '[d', vim.diagnostic.goto_prev, { desc = "Previous Document Diagnostic" })
 
@@ -629,22 +615,22 @@ vim.list_extend(plugins, {
         },
         ast_grep = {},
 
-        efm = {
-          cmd = { "efm-langserver", "--logfile", vim.fn.stdpath("state") .. "/efm.log", "--loglevel", efmls_loglevel[require("vim.lsp.log").get_level()] },
-          init_options = {
-            documentFormatting = true,
-            documentRangeFormatting = true,
-            hover = true,
-            documentSymbol = true,
-            codeAction = true,
-            completion = true,
-          },
-          settings = {
-            rootMarkers = { ".git/" },
-            filetype = vim.tbl_keys(efmls_languages),
-            languages = efmls_languages,
-          }
-        },
+        -- efm = {
+        --   cmd = { "efm-langserver", "--logfile", vim.fn.stdpath("state") .. "/efm.log", "--loglevel", efmls_loglevel[require("vim.lsp.log").get_level()] },
+        --   init_options = {
+        --     documentFormatting = true,
+        --     documentRangeFormatting = true,
+        --     hover = true,
+        --     documentSymbol = true,
+        --     codeAction = true,
+        --     completion = true,
+        --   },
+        --   settings = {
+        --     rootMarkers = { ".git/" },
+        --     filetype = vim.tbl_keys(efmls_languages),
+        --     languages = efmls_languages,
+        --   }
+        -- },
 
         -- javascript/typescript
         eslint = {},
@@ -912,6 +898,13 @@ vim.list_extend(plugins, {
       })
     end,
   },
+})
+
+-- TODO: plugins
+vim.list_extend(plugins, {
+  {
+    "echasnovski/mini.nvim"
+  },
   {
     'numToStr/Comment.nvim',
     keys = {
@@ -928,19 +921,12 @@ vim.list_extend(plugins, {
   },
 })
 
--- TODO: plugins
-vim.list_extend(plugins, {
-  {
-    "echasnovski/mini.nvim"
-  },
-})
-
 require("lazy").setup(plugins,
   {
     -- directory where plugins will be installed
     root = vim.fn.stdpath("data") .. "/lazy",
     -- lockfile generated after running update.
-    lockfile = vim.fn.stdpath("config") .. "/lazy-lock.json",
+    lockfile = vim.fn.stdpath("data") .. "/lazy-lock.json",
     defaults = {
       -- plugins lazy loaded by default
       lazy = true,

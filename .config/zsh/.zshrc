@@ -31,3 +31,4 @@ NVM_COMPLETION=true
 NVM_LAZY_LOAD=true
 NVM_LAZY_LOAD_EXTRA_COMMANDS=(nvm node npm npx yarn nvim vim)
 [[ -s "$HOME/.local/share/zsh-nvm/zsh-nvm.plugin.zsh" ]] && source "$HOME/.local/share/zsh-nvm/zsh-nvm.plugin.zsh"
+
