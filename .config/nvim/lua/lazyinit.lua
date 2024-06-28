@@ -344,7 +344,9 @@ vim.list_extend(plugins, {
                   end,
                 })
               end,
-              -- ["<C-r>"] = require("trouble.providers.telescope").open_with_trouble,
+              ["<C-r>"] = function(bufnr)
+                return require("trouble.providers.telescope").open_with_trouble(bufnr)
+              end,
             },
           },
         },
@@ -409,7 +411,7 @@ vim.list_extend(plugins, {
   {
     "folke/trouble.nvim",
     cmd = { "Trouble" },
-    enabled = false, -- BUG: hidden json string syntax
+    -- enabled = false, -- BUG: hidden json string syntax
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
       require("trouble").setup({})
@@ -615,22 +617,22 @@ vim.list_extend(plugins, {
         },
         ast_grep = {},
 
-        -- efm = {
-        --   cmd = { "efm-langserver", "--logfile", vim.fn.stdpath("state") .. "/efm.log", "--loglevel", efmls_loglevel[require("vim.lsp.log").get_level()] },
-        --   init_options = {
-        --     documentFormatting = true,
-        --     documentRangeFormatting = true,
-        --     hover = true,
-        --     documentSymbol = true,
-        --     codeAction = true,
-        --     completion = true,
-        --   },
-        --   settings = {
-        --     rootMarkers = { ".git/" },
-        --     filetype = vim.tbl_keys(efmls_languages),
-        --     languages = efmls_languages,
-        --   }
-        -- },
+        efm = {
+          cmd = { "efm-langserver", "--logfile", vim.fn.stdpath("state") .. "/efm.log", "--loglevel", efmls_loglevel[require("vim.lsp.log").get_level()] },
+          init_options = {
+            documentFormatting = true,
+            documentRangeFormatting = true,
+            hover = true,
+            documentSymbol = true,
+            codeAction = true,
+            completion = true,
+          },
+          settings = {
+            rootMarkers = { ".git/" },
+            filetype = vim.tbl_keys(efmls_languages),
+            languages = efmls_languages,
+          }
+        },
 
         -- javascript/typescript
         eslint = {},
@@ -810,8 +812,8 @@ vim.list_extend(plugins, {
           end, { 'i', 's' }),
         }),
         sources = cmp.config.sources({
-          { name = 'nvim_lsp' },
           { name = 'copilot' },
+          { name = 'nvim_lsp' },
           { name = "luasnip" },
         }, {
           { name = 'buffer', },
@@ -901,25 +903,25 @@ vim.list_extend(plugins, {
 })
 
 -- TODO: plugins
-vim.list_extend(plugins, {
-  {
-    "echasnovski/mini.nvim"
-  },
-  {
-    'numToStr/Comment.nvim',
-    keys = {
-      { "gc", mode = { "n", "v" }, desc = "Toggle Comment Line" },
-      { "gb", mode = { "n", "v" }, desc = "Toggle Comment Block" },
-    },
-    config = function()
-      ---@diagnostic disable-next-line:missing-fields
-      require('Comment').setup()
-    end
-  },
-  {
-    "mfussenegger/nvim-dap",
-  },
-})
+-- vim.list_extend(plugins, {
+--   {
+--     "echasnovski/mini.nvim"
+--   },
+--   {
+--     'numToStr/Comment.nvim',
+--     keys = {
+--       { "gc", mode = { "n", "v" }, desc = "Toggle Comment Line" },
+--       { "gb", mode = { "n", "v" }, desc = "Toggle Comment Block" },
+--     },
+--     config = function()
+--       ---@diagnostic disable-next-line:missing-fields
+--       require('Comment').setup()
+--     end
+--   },
+--   {
+--     "mfussenegger/nvim-dap",
+--   },
+-- })
 
 require("lazy").setup(plugins,
   {

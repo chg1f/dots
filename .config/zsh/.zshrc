@@ -22,7 +22,8 @@ POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
 
 export ZIM_HOME="$HOME/.local/share/zim"
 export ZIM_CONFIG_FILE="$ZDOTDIR/.zimrc"
-[[ -e "$ZIM_HOME/zimfw.zsh" ]] || curl -fsSL --create-dirs -o "${ZIM_HOME}/zimfw.zsh" "https://github.com/zimfw/zimfw/releases/latest/download/zimfw.zsh" # Download zim if missing
+[[ -e "$ZIM_HOME/zimfw.zsh" ]] || \
+  curl -fsSL --create-dirs -o "${ZIM_HOME}/zimfw.zsh" "https://github.com/zimfw/zimfw/releases/latest/download/zimfw.zsh" # Download zim if missing
 [[ -s "$ZIM_HOME/zimfw.zsh" ]] && source "$ZIM_HOME/zimfw.zsh" init -q # Install modules and update Zim # Define zmodule
 [[ -s "$ZIM_HOME/init.zsh" ]] && source "$ZIM_HOME/init.zsh" # Source Zim
 
@@ -32,3 +33,4 @@ NVM_LAZY_LOAD=true
 NVM_LAZY_LOAD_EXTRA_COMMANDS=(nvm node npm npx yarn nvim vim)
 [[ -s "$HOME/.local/share/zsh-nvm/zsh-nvm.plugin.zsh" ]] && source "$HOME/.local/share/zsh-nvm/zsh-nvm.plugin.zsh"
 
+[[ -f "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
